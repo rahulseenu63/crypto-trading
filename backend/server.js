@@ -177,11 +177,11 @@ io.on('connection', socket => {
 });
 
 // Catch-all route to serve frontend for SPA routing
-app.get('*', (req, res) => {
+app.get('/*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 const PORT = process.env.PORT || 10000;
-server.listen(PORT, () => {
+  server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
