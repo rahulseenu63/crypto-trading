@@ -4,16 +4,16 @@ const http = require('http');
 const cors = require('cors');
 const { Server } = require('socket.io');
 const { backtestMACrossover, backtestMACD } = require('./backtest');
-
 const binanceClient = require('./binanceClient');
 const { macdStrategy } = require('./macd');
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
-// Serve frontend
-app.use(express.static(path.join(__dirname, '..', 'public')));
+// Serve frontend build (adjust folder name if your build is in 'frontend' instead of 'public')
+app.use(express.static(path.join(__dirname, 'public')));
 
 // ---------------- REST API ---------------------
 
@@ -24,7 +24,13 @@ app.get('/api/klines', async (req, res) => {
     const interval = req.query.interval || '1m';
     const limit = +req.query.limit || 500;
 
+    // Fetch candles safely
     const candles = await binanceClient.getKlines({ symbol, interval, limit });
+
+    if (!candles || candles.length === 0) {
+      return res.status(500).json({ error: 'No data returned from Binance' });
+    }
+
     res.json({ symbol, interval, candles });
   } catch (err) {
     console.error('Error /api/klines', err);
@@ -43,15 +49,18 @@ app.post('/api/backtest-macd', async (req, res) => {
       limit
     });
 
+    if (!candles || candles.length === 0) {
+      return res.status(500).json({ error: 'No candle data for backtest' });
+    }
+
     const result = macdStrategy(candles, fast || 12, slow || 26, signal || 9);
 
-    // Return something that frontend can render
     res.json({
       symbol,
       interval,
       candles,
       macd: result,
-      equityCurve: [], // optional, for compatibility
+      equityCurve: [],
       trades: [],
       summary: { initialCapital: 10000, finalCapital: 10000, totalReturnPct: 0 }
     });
@@ -61,13 +70,11 @@ app.post('/api/backtest-macd', async (req, res) => {
   }
 });
 
-
 // ---------------- SOCKET.IO ---------------------
 
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
-// Keep track of candles per symbol/interval
 const candlesMap = {};
 const lastSignalMap = {};
 
@@ -75,7 +82,6 @@ io.on('connection', socket => {
   console.log('Client connected:', socket.id);
   socket.data.subscriptions = [];
 
-  // Subscribe to klines
   socket.on('subscribeKlines', ({ symbol, interval }) => {
     symbol = symbol.toUpperCase();
     interval = interval || '1m';
@@ -89,7 +95,7 @@ io.on('connection', socket => {
     });
     socket.data.subscriptions = [];
 
-    // Start live klines if not already
+    // Start live klines
     binanceClient.subscribeKlines(symbol, interval);
 
     if (!candlesMap[`${symbol}_${interval}`]) {
@@ -120,13 +126,10 @@ io.on('connection', socket => {
 
       if (candles.length > 300) candles.shift();
 
-      // Send candle to frontend
       socket.emit('kline', bar);
 
-      // Run MACD only on closed candle
       if (bar.isFinal && candles.length > 50) {
         const result = macdStrategy(candles);
-
         if (result) {
           const lastIndex = result.macdLine.length - 1;
           const macdUpdate = {
@@ -139,7 +142,6 @@ io.on('connection', socket => {
 
           socket.emit('macdUpdate', macdUpdate);
 
-          // Send BUY/SELL alert only once
           const lastSignal = lastSignalMap[`${symbol}_${interval}`];
           if (macdUpdate.signalType && macdUpdate.signalType !== lastSignal) {
             lastSignalMap[`${symbol}_${interval}`] = macdUpdate.signalType;
@@ -157,7 +159,6 @@ io.on('connection', socket => {
     socket.data.subscriptions.push({ symbol, interval, listener });
   });
 
-  // Unsubscribe
   socket.on('unsubscribeKlines', () => {
     socket.data.subscriptions.forEach(sub => {
       binanceClient.removeListener('kline', sub.listener);
@@ -175,8 +176,12 @@ io.on('connection', socket => {
   });
 });
 
+// Catch-all route to serve frontend for SPA routing
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 const PORT = process.env.PORT || 10000;
 server.listen(PORT, () => {
-  //console.log(`Server running at http://localhost:${PORT}`);
   console.log(`Server running on port ${PORT}`);
 });
