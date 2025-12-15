@@ -12,7 +12,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Serve frontend build (adjust folder name if your build is in 'frontend' instead of 'public')
+// Serve frontend build
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ---------------- REST API ---------------------
@@ -24,7 +24,6 @@ app.get('/api/klines', async (req, res) => {
     const interval = req.query.interval || '1m';
     const limit = +req.query.limit || 500;
 
-    // Fetch candles safely
     const candles = await binanceClient.getKlines({ symbol, interval, limit });
 
     if (!candles || candles.length === 0) {
@@ -88,14 +87,12 @@ io.on('connection', socket => {
 
     console.log(`Client ${socket.id} subscribing to ${symbol} ${interval}`);
 
-    // Remove old listeners
     socket.data.subscriptions.forEach(sub => {
       binanceClient.removeListener('kline', sub.listener);
       binanceClient.unsubscribeKlines(sub.symbol, sub.interval);
     });
     socket.data.subscriptions = [];
 
-    // Start live klines
     binanceClient.subscribeKlines(symbol, interval);
 
     if (!candlesMap[`${symbol}_${interval}`]) {
@@ -176,12 +173,12 @@ io.on('connection', socket => {
   });
 });
 
-// Catch-all route to serve frontend for SPA routing
-app.use('/*', (req, res) => {
+// ✅ SPA fallback route (Node 22 safe)
+app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 const PORT = process.env.PORT || 10000;
-  server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
