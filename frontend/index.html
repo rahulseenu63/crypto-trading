@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Free Crypto Trading Platform</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Lightweight Charts CDN -->
+  <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+
+  <!-- Socket.IO client -->
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" integrity="sha384-mZLF4UVrpi/QTWPA7BjNPEnkIfRFn4ZEO3Qt/HFklTJBj/gBOV8G3HcKn4NfQblz" crossorigin="anonymous"></script>
+
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #101014;
+      color: #f0f0f0;
+    }
+    header {
+      padding: 10px 20px;
+      background: #18181f;
+      border-bottom: 1px solid #303040;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    label {
+      font-size: 12px;
+    }
+    select, input, button {
+      font-size: 12px;
+      padding: 4px 6px;
+      border-radius: 4px;
+      border: 1px solid #444;
+      background: #202030;
+      color: #f0f0f0;
+    }
+    button {
+      cursor: pointer;
+    }
+    #chart-container {
+      height: 70vh;
+      margin: 10px;
+    }
+    #chart {
+      width: 100%;
+      height: 100%;
+    }
+    #backtest-results {
+      padding: 10px 20px 20px 20px;
+      background: #18181f;
+      border-top: 1px solid #303040;
+      font-size: 13px;
+    }
+    .trade {
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>Free Crypto Trading Platform (Binance + Lightweight Charts)</div>
+    <div class="controls">
+      <label>
+        Symbol:
+        <select id="symbol">
+          <option value="BTCUSDT">BTCUSDT</option>
+          <option value="ETHUSDT">ETHUSDT</option>
+          <option value="BNBUSDT">BNBUSDT</option>
+        </select>
+      </label>
+      <label>
+        Interval:
+        <select id="interval">
+          <option value="1m">1m</option>
+          <option value="5m">5m</option>
+          <option value="15m">15m</option>
+          <option value="1h">1h</option>
+          <option value="4h">4h</option>
+          <option value="1d">1d</option>
+        </select>
+      </label>
+      <button id="load-btn">Load</button>
+      <button id="backtest-btn">Backtest</button>
+      <button id="macd-backtest-btn">MACD Backtest</button>
+
+    </div>
+  </header>
+
+  <div id="chart-container">
+    <div id="chart"></div>
+  </div>
+
+  <div id="backtest-results">
+    <div><strong>Backtest Summary:</strong></div>
+    <div id="summary"></div>
+    <div><strong>Trades:</strong></div>
+    <div id="trades"></div>
+  </div>
+
+  <div id="chart" style="height: 400px;"></div>
+<div id="macd-chart" style="height: 200px;"></div>
+
+
+  <script src="app.js"></script>
+</body>
+
+</html>
