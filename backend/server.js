@@ -177,7 +177,7 @@ io.on('connection', socket => {
 });
 
 // Catch-all route to serve frontend for SPA routing
-app.get('/*', (req, res) => {
+app.use('/*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
