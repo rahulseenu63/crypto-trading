@@ -1,6 +1,7 @@
 /***********************
  * INDICATORS
  ***********************/
+
 function calculateSMA(candles, period) {
   const result = [];
   for (let i = 0; i < candles.length; i++) {
@@ -43,7 +44,9 @@ function calculateEMA(values, period) {
 /***********************
  * SOCKET
  ***********************/
-const socket = io("http://localhost:4000");
+//const socket = io("http://localhost:4000");
+const API_URL = "https://crypto-trading-fyvr.onrender.com";
+const socket = io(API_URL);
 
 /***********************
  * UI ELEMENTS
@@ -133,7 +136,10 @@ async function loadData() {
 
   socket.emit("unsubscribeKlines");
 
-  const url = `http://localhost:4000/api/klines?symbol=${currentSymbol}&interval=${currentInterval}&limit=500`;
+  //const url = `http://localhost:4000/api/klines?symbol=${currentSymbol}&interval=${currentInterval}&limit=500`;
+  //const resp = await fetch(url);
+  //const data = await resp.json();
+  const url = `${API_URL}/api/klines?symbol=${currentSymbol}&interval=${currentInterval}&limit=500`;
   const resp = await fetch(url);
   const data = await resp.json();
 
@@ -166,10 +172,13 @@ socket.on("kline", bar => {
  * SMA BACKTEST
  ***********************/
 async function runBacktest() {
-  const resp = await fetch("http://localhost:4000/api/backtest", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+  //const resp = await fetch("http://localhost:4000/api/backtest", {
+    //method: "POST",
+    //headers: { "Content-Type": "application/json" },
+    const resp = await fetch(`${API_URL}/api/backtest`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
       symbol: currentSymbol,
       interval: currentInterval,
       limit: 500,
@@ -186,10 +195,13 @@ async function runBacktest() {
  * MACD BACKTEST
  ***********************/
 async function runMacdBacktest() {
-  const resp = await fetch("http://localhost:4000/api/backtest-macd", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+  //const resp = await fetch("http://localhost:4000/api/backtest-macd", {
+    //method: "POST",
+    //headers: { "Content-Type": "application/json" },
+    const resp = await fetch(`${API_URL}/api/backtest-macd`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
       symbol: currentSymbol,
       interval: currentInterval,
       limit: 500,
