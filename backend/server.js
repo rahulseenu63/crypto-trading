@@ -13,7 +13,7 @@ app.use(cors());
 app.use(express.json());
 
 // Serve frontend
-app.use(express.static(path.join(__dirname, '..', 'frontend')));
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // ---------------- REST API ---------------------
 
