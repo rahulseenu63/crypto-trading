@@ -3,17 +3,16 @@ const express = require('express');
 const http = require('http');
 const cors = require('cors');
 const { Server } = require('socket.io');
-const { backtestMACrossover, backtestMACD } = require('./backtest');
-const binanceClient = require('./binanceClient');
 const { macdStrategy } = require('./macd');
+const binanceClient = require('./binanceClient');
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin:"*",
+  methods:["GET", "POST"]
+}));
 app.use(express.json());
-
-// Serve frontend build
-app.use(express.static(path.join(__dirname, 'public')));
 
 // ---------------- REST API ---------------------
 
@@ -22,20 +21,20 @@ app.get('/api/klines', async (req, res) => {
   try {
     const symbol = (req.query.symbol || 'BTCUSDT').toUpperCase();
     const interval = req.query.interval || '1m';
-    const limit = +req.query.limit || 500;
+    const limit = +req.query.limit || 100;
 
     const candles = await binanceClient.getKlines({ symbol, interval, limit });
 
-    if (!candles || candles.length === 0) {
-      return res.status(500).json({ error: 'No data returned from Binance' });
-    }
-
     res.json({ symbol, interval, candles });
   } catch (err) {
-    console.error('Error /api/klines', err);
-    res.status(500).json({ error: 'Failed to fetch klines' });
+    console.error("BINANCE ERROR:", err?.message || err);
+    res.status(500).json({
+      error: "Failed to fetch klines",
+      details: err?.message || "Unknown error"
+    });
   }
 });
+
 
 // MACD backtest
 app.post('/api/backtest-macd', async (req, res) => {
@@ -49,15 +48,20 @@ app.post('/api/backtest-macd', async (req, res) => {
     });
 
     if (!candles || candles.length === 0) {
-      return res.status(500).json({ error: 'No candle data for backtest' });
+      return res.status(204).json({ message: 'No candle data for backtest' });
     }
 
-    const result = macdStrategy(candles, fast || 12, slow || 26, signal || 9);
+    let result = null;
+    try {
+      result = macdStrategy(candles, fast || 12, slow || 26, signal || 9);
+    } catch (err) {
+      console.error('MACD calculation error', err);
+      result = null;
+    }
 
     res.json({
       symbol,
       interval,
-      candles,
       macd: result,
       equityCurve: [],
       trades: [],
@@ -85,8 +89,7 @@ io.on('connection', socket => {
     symbol = symbol.toUpperCase();
     interval = interval || '1m';
 
-    console.log(`Client ${socket.id} subscribing to ${symbol} ${interval}`);
-
+    // Clear previous subscriptions
     socket.data.subscriptions.forEach(sub => {
       binanceClient.removeListener('kline', sub.listener);
       binanceClient.unsubscribeKlines(sub.symbol, sub.interval);
@@ -126,7 +129,14 @@ io.on('connection', socket => {
       socket.emit('kline', bar);
 
       if (bar.isFinal && candles.length > 50) {
-        const result = macdStrategy(candles);
+        let result = null;
+        try {
+          result = macdStrategy(candles);
+        } catch (err) {
+          console.error('MACD calculation error (socket)', err);
+          return;
+        }
+
         if (result) {
           const lastIndex = result.macdLine.length - 1;
           const macdUpdate = {
