@@ -11,7 +11,7 @@ const httpsAgent = new https.Agent({
   family: 4
 });
 
-const BINANCE_REST_BASE = 'https://api.binance.com';
+const BINANCE_REST_BASE = 'https://api.binance.us';
 const BINANCE_WS_BASE = 'wss://stream.binance.com:9443/ws';
 
 class BinanceClient extends EventEmitter {
