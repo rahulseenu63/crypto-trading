@@ -23,39 +23,43 @@ class BinanceClient extends EventEmitter {
   /**
    * Get historical candles for symbol/interval
    */
-  async getKlines({ symbol, interval, limit = 500 }) {
-    try {
-      const resp = await axios.get(
-        `${BINANCE_REST_BASE}/api/v3/klines`,
-        {
-          params: { symbol, interval, limit },
-          timeout: 10000,
-          httpsAgent, // ✅ THIS FIXES RENDER
-          headers: {
-            "User-Agent": "Mozilla/5.0",
-            "Accept": "application/json"
-          }
-        }
-      );
+  async getKlines({ symbol, interval, limit = 100 }) {
+  try {
+    // Map symbol for CoinGecko
+    const coinMap = {
+      BTCUSDT: "bitcoin",
+      ETHUSDT: "ethereum"
+    };
 
-      return resp.data.map(c => ({
-        time: Math.floor(c[0] / 1000),
-        open: +c[1],
-        high: +c[2],
-        low: +c[3],
-        close: +c[4],
-        volume: +c[5]
-      }));
-    } catch (err) {
-      console.error(
-        "Binance REST error:",
-        err.code,
-        err.response?.status,
-        err.message
-      );
-      throw err;
-    }
+    const coinId = coinMap[symbol.toUpperCase()] || "bitcoin";
+
+    const resp = await axios.get(
+      "https://api.coingecko.com/api/v3/coins/" + coinId + "/market_chart",
+      {
+        params: {
+          vs_currency: "usd",
+          days: 1,
+          interval: "minute"
+        }
+      }
+    );
+
+    // Convert CoinGecko format to candle format
+    const prices = resp.data.prices.slice(-limit);
+
+    return prices.map(p => ({
+      time: Math.floor(p[0] / 1000),
+      open: p[1],
+      high: p[1],
+      low: p[1],
+      close: p[1],
+      volume: 0
+    }));
+  } catch (err) {
+    console.error("CoinGecko error:", err.message);
+    throw err;
   }
+}
 
   /**
    * Subscribe to live klines via Binance WebSocket.
